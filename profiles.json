@@ -1,0 +1,32 @@
+{
+  "Alta Calidad": {
+    "vcodec": "libx264",
+    "acodec": "aac",
+    "video_bitrate": "1000k",
+    "audio_bitrate": "192k",
+    "format": "mp4",
+    "width": 1920,
+    "height": 1080,
+    "extra": {}
+  },
+  "Para Móviles": {
+    "vcodec": "libx264",
+    "acodec": "aac",
+    "video_bitrate": "500k",
+    "audio_bitrate": "128k",
+    "format": "mp4",
+    "width": 640,
+    "height": 360,
+    "extra": {}
+  },
+  "Rendimiento": {
+    "vcodec": "libx264",
+    "acodec": "aac",
+    "video_bitrate": "800k",
+    "audio_bitrate": "128k",
+    "format": "mp4",
+    "width": 1280,
+    "height": 720,
+    "extra": {}
+  }
+}

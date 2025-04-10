@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Transcriber App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h1 class="mb-4">Transcriber App</h1>
+  <form id="convertForm" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="files">Selecciona uno o varios archivos multimedia</label>
+      <!-- Se restringe la selección a archivos de vídeo e imagen -->
+      <input type="file" class="form-control" id="files" name="files" multiple accept="video/*, image/*">
+    </div>
+    <div class="form-group">
+      <label for="target_format">Formato de salida</label>
+      <select class="form-control" id="target_format" name="target_format">
+        <!-- Se llenará dinámicamente según el tipo del archivo seleccionado -->
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Iniciar Conversión</button>
+  </form>
+  <div id="result" class="mt-4"></div>
+</div>
+
+<!-- jQuery y Bootstrap JS para manejo del formulario y AJAX -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script>
+  // Opciones para vídeos e imágenes, pasadas desde el backend
+  var videoFormats = {{ video_formats|tojson }};
+  var imageFormats = {{ image_formats|tojson }};
+
+  // Actualiza el selector de formatos según el tipo MIME o la extensión del primer archivo seleccionado
+  function updateFormatOptions() {
+    var fileInput = document.getElementById('files');
+    var formatSelect = document.getElementById('target_format');
+    formatSelect.innerHTML = ''; // Vaciar opciones existentes
+    if (fileInput.files.length > 0) {
+      var file = fileInput.files[0];
+      var formats = [];
+      // Primero se intenta usar file.type
+      if (file.type) {
+        if (file.type.startsWith('video')) {
+          formats = videoFormats;
+        } else if (file.type.startsWith('image')) {
+          formats = imageFormats;
+        }
+      }
+      // Si file.type no es confiable, se analiza la extensión del archivo
+      if (formats.length === 0) {
+        var fileName = file.name.toLowerCase();
+        if (/\.(mp4|avi|mov|mkv)$/.test(fileName)) {
+          formats = videoFormats;
+        } else if (/\.(jpg|jpeg|png|gif|bmp)$/.test(fileName)) {
+          formats = imageFormats;
+        }
+      }
+      // Si se pudo determinar el formato, se llenan las opciones
+      if (formats.length > 0) {
+        formats.forEach(function(fmt) {
+          var opt = document.createElement('option');
+          opt.value = fmt;
+          opt.innerHTML = fmt;
+          formatSelect.appendChild(opt);
+        });
+      } else {
+        // Si el archivo no es reconocido o no es multimedia
+        var opt = document.createElement('option');
+        opt.value = "";
+        opt.innerHTML = "Tipo no soportado";
+        formatSelect.appendChild(opt);
+      }
+    }
+  }
+
+  document.getElementById('files').addEventListener('change', updateFormatOptions);
+
+  $("#convertForm").submit(function(event){
+    event.preventDefault();
+    var formData = new FormData(this);
+    $.ajax({
+      url: "/convert",
+      type: "POST",
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function(data){
+        if (data.status === 'ok') {
+          $("#result").html("<div class='alert alert-success'>Conversión iniciada para " + data.tasks.length + " archivo(s).</div>");
+        } else {
+          $("#result").html("<div class='alert alert-danger'>Error: " + data.message + "</div>");
+        }
+      }
+    });
+  });
+</script>
+</body>
+</html>
