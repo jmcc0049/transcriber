@@ -2,33 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Transcriber App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convertidor Multimedia</title> <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 </head>
 <body>
 <div class="container mt-5">
-  <h1 class="mb-4">Transcriber App</h1>
-  <form id="convertForm" enctype="multipart/form-data">
+  <h1 class="mb-4">Convertidor Multimedia</h1> <form id="convertForm" enctype="multipart/form-data">
     <div class="form-group">
       <label for="files">Selecciona uno o varios archivos multimedia</label>
-      <!-- Se restringe la selección a archivos de vídeo e imagen -->
-      <input type="file" class="form-control" id="files" name="files" multiple accept="video/*, image/*">
-    </div>
+      <input type="file" class="form-control-file" id="files" name="files" multiple accept="video/*, image/*"> </div>
+
     <div class="form-group">
       <label for="target_format">Formato de salida</label>
       <select class="form-control" id="target_format" name="target_format">
-        <!-- Se llenará dinámicamente según el tipo del archivo seleccionado -->
+        <option value="">Selecciona un archivo primero</option>
       </select>
+    </div>
+
+    <div class="form-group">
+      <label for="qualitySlider">Calidad (1=Baja, 100=Alta): <span id="qualityValue">75</span></label>
+      <input type="range" class="form-control-range" id="qualitySlider" name="quality_level" min="1" max="100" value="75">
     </div>
     <button type="submit" class="btn btn-primary">Iniciar Conversión</button>
   </form>
-  <div id="result" class="mt-4"></div>
+  <div id="result" class="mt-4">
+      </div>
 </div>
 
-<!-- jQuery y Bootstrap JS para manejo del formulario y AJAX -->
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
 <script>
   // Opciones para vídeos e imágenes, pasadas desde el backend
   var videoFormats = {{ video_formats|tojson }};
@@ -39,64 +44,137 @@
     var fileInput = document.getElementById('files');
     var formatSelect = document.getElementById('target_format');
     formatSelect.innerHTML = ''; // Vaciar opciones existentes
-    if (fileInput.files.length > 0) {
-      var file = fileInput.files[0];
-      var formats = [];
-      // Primero se intenta usar file.type
-      if (file.type) {
-        if (file.type.startsWith('video')) {
-          formats = videoFormats;
-        } else if (file.type.startsWith('image')) {
-          formats = imageFormats;
-        }
+
+    if (fileInput.files.length === 0) {
+        var defaultOpt = document.createElement('option');
+        defaultOpt.value = "";
+        defaultOpt.innerHTML = "Selecciona un archivo primero";
+        formatSelect.appendChild(defaultOpt);
+        return;
+    }
+
+    var file = fileInput.files[0];
+    var formats = [];
+    var fileTypeDetected = null; // 'video' o 'image'
+
+    // Primero se intenta usar file.type
+    if (file.type) {
+      if (file.type.startsWith('video')) {
+        formats = videoFormats;
+        fileTypeDetected = 'video';
+      } else if (file.type.startsWith('image')) {
+        formats = imageFormats;
+        fileTypeDetected = 'image';
       }
-      // Si file.type no es confiable, se analiza la extensión del archivo
-      if (formats.length === 0) {
-        var fileName = file.name.toLowerCase();
-        if (/\.(mp4|avi|mov|mkv)$/.test(fileName)) {
-          formats = videoFormats;
-        } else if (/\.(jpg|jpeg|png|gif|bmp)$/.test(fileName)) {
-          formats = imageFormats;
-        }
+    }
+
+    // Si file.type no es confiable o vacío, se analiza la extensión del archivo
+    if (formats.length === 0) {
+      var fileName = file.name.toLowerCase();
+      if (/\.(mp4|avi|mov|mkv|wmv|flv|webm)$/.test(fileName)) { // Extensiones de video actualizadas
+        formats = videoFormats;
+        fileTypeDetected = 'video';
+      } else if (/\.(jpg|jpeg|png|gif|bmp|webp|tiff)$/.test(fileName)) { // Extensiones de imagen actualizadas
+        formats = imageFormats;
+        fileTypeDetected = 'image';
       }
-      // Si se pudo determinar el formato, se llenan las opciones
-      if (formats.length > 0) {
-        formats.forEach(function(fmt) {
-          var opt = document.createElement('option');
-          opt.value = fmt;
-          opt.innerHTML = fmt;
-          formatSelect.appendChild(opt);
-        });
-      } else {
-        // Si el archivo no es reconocido o no es multimedia
+    }
+
+    // Si se pudo determinar el formato, se llenan las opciones
+    if (formats.length > 0) {
+      formats.forEach(function(fmt) {
         var opt = document.createElement('option');
-        opt.value = "";
-        opt.innerHTML = "Tipo no soportado";
+        opt.value = fmt;
+        opt.innerHTML = fmt.toUpperCase(); // Mostrar en mayúsculas para claridad
         formatSelect.appendChild(opt);
-      }
+      });
+    } else {
+      // Si el archivo no es reconocido o no es multimedia
+      var opt = document.createElement('option');
+      opt.value = "";
+      opt.innerHTML = "Tipo de archivo no soportado";
+      formatSelect.appendChild(opt);
     }
   }
 
+  // Actualizar el valor mostrado por el deslizador
+  $('#qualitySlider').on('input', function() {
+    $('#qualityValue').text($(this).val());
+  });
+
+
+  // Añadir listener al input de archivos
   document.getElementById('files').addEventListener('change', updateFormatOptions);
 
-  $("#convertForm").submit(function(event){
+  // Llamar a updateFormatOptions al cargar la página por si hay archivos preseleccionados (no aplica aquí pero es buena práctica)
+  // updateFormatOptions(); // Descomentar si es necesario
+
+  // Manejo del envío del formulario con AJAX
+    $("#convertForm").submit(function(event){
     event.preventDefault();
     var formData = new FormData(this);
+    // Limpiar resultados anteriores
+    $("#result").html("<div class='alert alert-info'>Iniciando conversión...</div>");
+
     $.ajax({
       url: "/convert",
       type: "POST",
       data: formData,
-      processData: false,
-      contentType: false,
+      processData: false,  // Importante para FormData
+      contentType: false, // Importante para FormData
       success: function(data){
         if (data.status === 'ok') {
-          $("#result").html("<div class='alert alert-success'>Conversión iniciada para " + data.tasks.length + " archivo(s).</div>");
+          let resultsHtml = "<div class='alert alert-success'>Conversión(es) iniciada(s):</div><ul class='list-group'>";
+          data.tasks.forEach(function(task) {
+            resultsHtml += `<li class='list-group-item' id='task-${task.task_id}'>${task.input_file} -> ${task.output_file} <span class='badge badge-info float-right'>Pendiente</span></li>`;
+            // Iniciar chequeo de estado para esta tarea
+            checkTaskStatus(task.task_id, task.output_file);
+          });
+          resultsHtml += "</ul>";
+          $("#result").html(resultsHtml);
         } else {
           $("#result").html("<div class='alert alert-danger'>Error: " + data.message + "</div>");
         }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+          $("#result").html("<div class='alert alert-danger'>Error en la solicitud: " + textStatus + " - " + errorThrown + "</div>");
       }
     });
   });
+
+  // Función para verificar el estado de la tarea periódicamente
+  function checkTaskStatus(taskId, outputFile) {
+    $.ajax({
+        url: '/task_status/' + taskId,
+        type: 'GET',
+        success: function(data) {
+            let taskElement = $(`#task-${taskId}`);
+            if (data.status === 'running') {
+                taskElement.find('.badge').removeClass('badge-info').addClass('badge-warning').text('Procesando...');
+                // Reintentar después de un tiempo
+                setTimeout(function() { checkTaskStatus(taskId, outputFile); }, 3000); // Chequear cada 3 segundos
+            } else if (data.status === 'done') {
+                if (data.success) {
+                     taskElement.find('.badge').removeClass('badge-warning').addClass('badge-success').text('Completado');
+                     // Opcional: Añadir enlace de descarga si se implementa
+                     // taskElement.append(` <a href="/download/${outputFile}" target="_blank">Descargar</a>`);
+                } else {
+                     taskElement.find('.badge').removeClass('badge-warning').addClass('badge-danger').text('Error');
+                     taskElement.append(` <small class='text-danger'>(${data.info || 'Detalles no disponibles'})</small>`);
+                }
+            } else { // error o tarea no encontrada
+                taskElement.find('.badge').removeClass('badge-info badge-warning').addClass('badge-danger').text('Error');
+                 taskElement.append(` <small class='text-danger'>(${data.message || 'Error desconocido'})</small>`);
+            }
+        },
+        error: function() {
+            let taskElement = $(`#task-${taskId}`);
+            taskElement.find('.badge').removeClass('badge-info badge-warning').addClass('badge-danger').text('Error de red');
+             setTimeout(function() { checkTaskStatus(taskId, outputFile); }, 5000); // Reintentar tras error de red
+        }
+    });
+  }
+
 </script>
 </body>
 </html>
