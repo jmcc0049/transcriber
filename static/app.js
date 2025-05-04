@@ -1,6 +1,13 @@
 const $ = s => document.querySelector(s);
 const filesInput = $('#files');
 const selectedGrid = $('#selectedGrid');
+const qualitySlider = $('#qualitySlider');
+const qualityValue = $('#qualityValue');
+
+// Actualizamos el valor mostrado cuando el usuario mueve el deslizador de calidad
+qualitySlider.addEventListener('input', () => {
+    qualityValue.textContent = qualitySlider.value;
+});
 
 filesInput.addEventListener('change', updateFormatOptions);
 document.getElementById('dropArea').addEventListener('click', () => filesInput.click());
@@ -22,33 +29,36 @@ function renderSelectedPreviews() {
         const url = URL.createObjectURL(file);
         const isVideo = file.type.startsWith('video');
 
-        // Creamos el elemento media de forma dinámica
         let mediaEl;
-        if (isVideo) {mediaEl = document.createElement('video');mediaEl.muted = true;mediaEl.autoplay = true;mediaEl.loop = true;
-        } else {mediaEl = document.createElement('img');mediaEl.alt = 'preview';
+        if (isVideo) {
+            mediaEl = document.createElement('video');
+            mediaEl.muted = true;
+            mediaEl.autoplay = true;
+            mediaEl.loop = true;
+        } else {
+            mediaEl = document.createElement('img');
+            mediaEl.alt = 'preview';
         }
         mediaEl.src = url;
 
-        // Revocamos la URL cuando termine de cargarse el media
         const revoke = () => URL.revokeObjectURL(url);
-        if (isVideo) {mediaEl.addEventListener('loadeddata', revoke, { once: true });
-        } else {mediaEl.addEventListener('load', revoke, { once: true });
+        if (isVideo) {
+            mediaEl.addEventListener('loadeddata', revoke, { once: true });
+        } else {
+            mediaEl.addEventListener('load', revoke, { once: true });
         }
 
-        // Botón de quitar
         const btn = document.createElement('button');
         btn.className = 'remove-btn';
         btn.innerHTML = '&times;';
         btn.dataset.name = file.name;
         btn.addEventListener('click', () => removeFile(file.name));
 
-        // Montamos todo
         wrapper.appendChild(btn);
         wrapper.appendChild(mediaEl);
         selectedGrid.appendChild(wrapper);
     });
 }
-
 
 function removeFile(name) {
     const dt = new DataTransfer();
@@ -73,7 +83,7 @@ function updateFormatOptions() {
 }
 
 // Conversión y polling
-document.getElementById('btnConvert').addEventListener('click', async () => {
+$('#btnConvert').addEventListener('click', async () => {
     if (!filesInput.files.length) return alert('Selecciona al menos un archivo.');
     const format = $('#target_format').value;
     if (!format) return alert('Selecciona el formato de salida.');
@@ -81,9 +91,9 @@ document.getElementById('btnConvert').addEventListener('click', async () => {
     const fd = new FormData();
     [...filesInput.files].forEach(f => fd.append('files', f));
     fd.append('target_format', format);
-    fd.append('quality_level', $('#qualitySlider').value);
+    fd.append('quality_level', qualitySlider.value);
 
-    $('#progressArea').innerHTML = `<div class=\"progress\" role=\"progressbar\"><div class=\"progress-bar progress-bar-striped progress-bar-animated\" style=\"width:0%\"></div></div>`;
+    $('#progressArea').innerHTML = `<div class="progress" role="progressbar"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>`;
     previewGrid.innerHTML = '';
 
     try {
@@ -91,7 +101,7 @@ document.getElementById('btnConvert').addEventListener('click', async () => {
         const { tasks } = await res.json();
         tasks.forEach(task => createTaskCard(task));
     } catch (err) {
-        $('#progressArea').innerHTML = `<div class=\"alert alert-danger\">${err.message}</div>`;
+        $('#progressArea').innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
     }
 });
 
@@ -118,9 +128,17 @@ async function pollStatus(id, filename) {
         const res = await fetch(`/task_status/${id}`);
         const { status, success } = await res.json();
         const badge = document.querySelector(`#card-${id} .status-badge`);
-        if (status === 'running') {badge.style.width = badge.style.width || '0%';badge.parentElement.previousElementSibling.querySelector('.progress-bar').style.width = '50%';setTimeout(() => pollStatus(id, filename), 2000);
-        } else if (status === 'done' && success) {badge.className = 'status-badge completed';badge.textContent = 'Completado';showPreview(filename, id);
-        } else {badge.className = 'badge text-bg-danger';badge.textContent = 'Error';
+        if (status === 'running') {
+            badge.style.width = badge.style.width || '0%';
+            badge.parentElement.previousElementSibling.querySelector('.progress-bar').style.width = '50%';
+            setTimeout(() => pollStatus(id, filename), 2000);
+        } else if (status === 'done' && success) {
+            badge.className = 'status-badge completed';
+            badge.textContent = 'Completado';
+            showPreview(filename, id);
+        } else {
+            badge.className = 'badge text-bg-danger';
+            badge.textContent = 'Error';
         }
     } catch (err) {
         setTimeout(() => pollStatus(id, filename), 4000);

@@ -23,13 +23,6 @@ app.config['CONVERSIONS_FOLDER'] = CONVERSIONS_FOLDER
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) # Usar número de CPUs como workers
 tasks = {} # Diccionario para seguir el estado de las tareas futuras
 
-# Cargar perfiles (opcional, no usado activamente en esta implementación con slider)
-# try:
-#     with open('profiles.txt', 'r') as f:
-#         profiles = json.load(f)
-# except FileNotFoundError:
-#     profiles = {}
-
 @app.route('/favicon.png')
 def favicon_png():
     return send_from_directory('static', 'favicon.png')
@@ -161,8 +154,6 @@ def task_status(task_id):
     if future.done():
         try:
             success, file_in_uuid, info_or_path = future.result()
-            # Opcional: eliminar la tarea del diccionario una vez completada para liberar memoria
-            # del tasks[task_id]
             return jsonify({
                 'status': 'done',
                 'success': success,
@@ -190,15 +181,19 @@ def converted_file(filename):
     """
     return send_from_directory(app.config['CONVERSIONS_FOLDER'], filename)
 
-# --- Opcional: Ruta de Descarga ---
-# @app.route('/download/<path:filename>')
-# def download_file(filename):
-#     try:
-#         return send_from_directory(app.config['CONVERSIONS_FOLDER'], filename, as_attachment=True)
-#     except FileNotFoundError:
-#         return jsonify({'status': 'error', 'message': 'Archivo no encontrado.'}), 404
-# --- Fin Opcional ---
-
+@app.route('/download/<path:filename>')
+def download_file(filename):
+    """
+    Devuelve el archivo convertido como adjunto para forzar descarga.
+    """
+    try:
+        return send_from_directory(
+            app.config['CONVERSIONS_FOLDER'],
+            filename,
+            as_attachment=True
+        )
+    except FileNotFoundError:
+        return jsonify({'status': 'error', 'message': 'Archivo no encontrado.'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0') # Ejecutar en todas las interfaces para acceso en red local si es necesario
