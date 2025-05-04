@@ -1,0 +1,129 @@
+body { background: #f5f7fa; }
+.dropzone {
+    border: 2px dashed #6c63ff;
+    border-radius: 2rem;
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.dropzone.dragover { background: #ebe9ff; }
+
+.conversion-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    width: 100%;
+    gap: 0;
+}
+.selected-section,
+.results-section {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.6s ease;
+}
+.selected-section {
+    padding: 1rem;
+    max-width: 60vw;
+    width: 100%;
+}
+.results-section {
+    padding: 1rem;
+    display: none;
+    opacity: 0;
+}
+.conversion-container.active {
+    grid-template-columns: 1fr 1fr;
+    justify-items: stretch;
+    gap: 2rem;
+}
+.conversion-container.active .selected-section {
+    max-width: none;
+}
+.conversion-container.active .results-section {
+    display: block;
+    opacity: 1;
+}
+
+/* Preview items smaller with remove button */
+.preview-item {
+    position: relative;
+    padding: 0.25rem;
+}
+.preview-item video,
+.preview-item img {
+    max-width: 80px;
+    max-height: 80px;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.remove-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255,255,255,0.8);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.remove-btn:hover {
+    background: rgba(255,0,0,0.8);
+    color: #fff;
+}
+
+#selectedGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.preview-item img,
+.preview-item video {
+    width: 100%;
+    height: auto;
+    max-height: 100px;
+}
+
+/* --- Estilos globales de la tarjeta --- */
+.card-body {
+    display: flex;
+    flex-direction: column;
+}
+/* Contenedor del badge, para alinearlo al principio y separarlo del contenido */
+.status-badge-container {
+    align-self: flex-start;  /* arriba a la izquierda */
+    margin-bottom: 0.5rem;   /* separación del resto */
+}
+
+/* Clase común para ambos estados */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;    /* espacio interior cómodo */
+    border-radius: 9999px;       /* píldora */
+    font-size: 0.875rem;         /* ligeramente más pequeño */
+    font-weight: 600;            /* seminegrita */
+    color: #fff;                 /* texto en blanco */
+    white-space: nowrap;         /* sin saltos de línea */
+    text-align: center;          /* centrado horizontal */
+    min-width: 5rem;             /* no se encoja demasiado */
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);  /* sombra suave */
+}
+
+/* Estado “Procesando” */
+.status-badge.processing {
+    background-color: #e67e22;   /* naranja vivo */
+}
+
+/* Estado “Completado” */
+.status-badge.completed {
+    background-color: #27ae60;   /* verde intenso */
+}

@@ -30,6 +30,14 @@ tasks = {} # Diccionario para seguir el estado de las tareas futuras
 # except FileNotFoundError:
 #     profiles = {}
 
+@app.route('/favicon.png')
+def favicon_png():
+    return send_from_directory('static', 'favicon.png')
+
+@app.route('/favicon.ico')
+def favicon_ico():
+    return send_from_directory('static', 'favicon.ico')
+
 @app.route('/')
 def index():
     # Opciones de formato ampliadas para vídeos e imágenes.
