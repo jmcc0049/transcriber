@@ -1,0 +1,3 @@
+Para poder ejecutar correctamente el proyecto Flask, deberemos instalar los siguientes paquetes en nuestro sistema Linux
+
+sudo apt install -y ffmpeg libheif1 libheif-dev

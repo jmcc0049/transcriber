@@ -30,7 +30,6 @@ tasks = {} # Diccionario para seguir el estado de las tareas futuras
 # except FileNotFoundError:
 #     profiles = {}
 
-
 @app.route('/')
 def index():
     # Opciones de formato ampliadas para vídeos e imágenes.
@@ -87,8 +86,11 @@ def convert():
         file_type_determined_by = "Desconocido"
 
         # Listas de extensiones válidas
-        video_exts = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm']
-        image_exts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff']
+        video_exts = ['.mp4', '.m4v', '.avi', '.mkv', '.mov', '.wmv',
+                      '.flv', '.webm', '.mpg', '.mpeg', '.3gp']
+
+        image_exts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
+                      '.tiff', '.tif', '.heic', '.heif']
 
         if mime:
             if mime.startswith('video'):
@@ -170,6 +172,15 @@ def task_status(task_id):
             })
     else:
         return jsonify({'status': 'running'})
+
+
+@app.route('/converted/<path:filename>')
+def converted_file(filename):
+    """
+    Devuelve el archivo recién convertido para que el front-end pueda incrustarlo
+    (video/img) como vista previa.
+    """
+    return send_from_directory(app.config['CONVERSIONS_FOLDER'], filename)
 
 # --- Opcional: Ruta de Descarga ---
 # @app.route('/download/<path:filename>')
