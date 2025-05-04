@@ -21,7 +21,6 @@
       }
       .dropzone.dragover { background: #ebe9ff; }
 
-      /* Grid centrar inicialmente y expandir al activar */
       .conversion-container {
         display: grid;
         grid-template-columns: 1fr;
@@ -59,18 +58,89 @@
         opacity: 1;
       }
 
-      /* Ajustes de previews */
-      #previewGrid video,
-      #previewGrid img,
-      #selectedGrid video,
-      #selectedGrid img {
-        max-width: 100%;
-        border-radius: 1rem;
+      /* Preview items smaller with remove button */
+      .preview-item {
+        position: relative;
+        padding: 0.25rem;
+      }
+      .preview-item video,
+      .preview-item img {
+        max-width: 80px;
+        max-height: 80px;
+        border-radius: 0.5rem;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      .remove-btn {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: rgba(255,255,255,0.8);
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .remove-btn:hover {
+        background: rgba(255,0,0,0.8);
+        color: #fff;
+      }
+
+      #selectedGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+      }
+
+      .preview-item img,
+      .preview-item video {
+        width: 100%;
+        height: auto;
+        max-height: 100px;
+      }
+
+      /* --- Estilos globales de la tarjeta --- */
+      .card-body {
+        display: flex;
+        flex-direction: column;
+      }
+      /* Contenedor del badge, para alinearlo al principio y separarlo del contenido */
+      .status-badge-container {
+        align-self: flex-start;  /* arriba a la izquierda */
+        margin-bottom: 0.5rem;   /* separación del resto */
+      }
+
+      /* Clase común para ambos estados */
+      .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;    /* espacio interior cómodo */
+        border-radius: 9999px;       /* píldora */
+        font-size: 0.875rem;         /* ligeramente más pequeño */
+        font-weight: 600;            /* seminegrita */
+        color: #fff;                 /* texto en blanco */
+        white-space: nowrap;         /* sin saltos de línea */
+        text-align: center;          /* centrado horizontal */
+        min-width: 5rem;             /* no se encoja demasiado */
+        box-sizing: border-box;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);  /* sombra suave */
+      }
+
+      /* Estado “Procesando” */
+      .status-badge.processing {
+        background-color: #e67e22;   /* naranja vivo */
+      }
+
+      /* Estado “Completado” */
+      .status-badge.completed {
+        background-color: #27ae60;   /* verde intenso */
       }
     </style>
   </head>
-
   <body>
     <main class="container-fluid py-5">
       <h1 class="mb-4 fw-bold text-center">
@@ -78,15 +148,14 @@
         Transcriber
       </h1>
       <div id="conversionContainer" class="conversion-container">
-        <!-- Sección de selección -->
         <div class="card selected-section" id="selectedSection">
           <div class="card-body">
             <div id="dropArea" class="dropzone mb-4">
               <p class="lead mb-0">Arrastra tus archivos aquí o haz clic para seleccionarlos</p>
-              <input id="files" name="files" type="file" accept="video/*,image/*" multiple hidden />
+              <input id="files" type="file" accept="video/*,image/*" multiple hidden />
             </div>
             <h2 class="h5 fw-semibold mb-3">Archivos seleccionados</h2>
-            <div id="selectedGrid" class="row g-4 mb-4"></div>
+            <div id="selectedGrid" class="d-flex flex-wrap g-2 mb-4"></div>
             <div class="row g-3 mb-4">
               <div class="col-md">
                 <label class="form-label fw-semibold" for="target_format">Formato de salida</label>
@@ -109,7 +178,6 @@
             <div id="progressArea" class="mt-4"></div>
           </div>
         </div>
-        <!-- Sección de resultados -->
         <div class="card results-section" id="resultsSection">
           <div class="card-body">
             <h2 class="h4 fw-semibold mt-0 mb-3">Resultados</h2>
@@ -118,116 +186,151 @@
         </div>
       </div>
     </main>
-
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      const VF_RAW = '{{ video_formats|tojson|safe }}';
-      const IF_RAW = '{{ image_formats|tojson|safe }}';
-      const looksLikeJSON = str => /^\s*[\[{]/.test(str);
-      function safeParse(raw, fallback) {
-        if (!looksLikeJSON(raw)) return fallback;
-        try { const data = JSON.parse(raw); return Array.isArray(data) ? data : fallback; } catch { return fallback; }
-      }
-      const videoFormats = safeParse(VF_RAW, ['mp4','avi','mkv','mov','wmv','flv','webm']);
-      const imageFormats = safeParse(IF_RAW, ['jpg','jpeg','png','webp','gif','bmp']);
-
-      const $ = sel => document.querySelector(sel);
-      const previewGrid = $('#previewGrid');
+      const $ = s => document.querySelector(s);
+      const filesInput = $('#files');
       const selectedGrid = $('#selectedGrid');
 
-      async function fetchJSON(url, options = {}) {
-        const res = await fetch(url, options);
-        const text = await res.text();
-        try { return { ok: res.ok, json: JSON.parse(text) }; } catch { throw new Error(text || 'Respuesta no válida'); }
-      }
+      filesInput.addEventListener('change', updateFormatOptions);
+      document.getElementById('dropArea').addEventListener('click', () => filesInput.click());
+      ['dragenter','dragover'].forEach(ev => $('#dropArea').addEventListener(ev, e => { e.preventDefault(); $('#dropArea').classList.add('dragover'); }));
+      ['dragleave','drop'].forEach(ev => $('#dropArea').addEventListener(ev, e => { e.preventDefault(); $('#dropArea').classList.remove('dragover'); }));
+      $('#dropArea').addEventListener('drop', e => {
+        const dt = new DataTransfer();
+        [...e.dataTransfer.files].forEach(f => dt.items.add(f));
+        filesInput.files = dt.files;
+        updateFormatOptions();
+      });
 
       function renderSelectedPreviews() {
         selectedGrid.innerHTML = '';
-        const files = $('#files').files;
-        if (!files.length) return;
-        [...files].forEach(file => {
-          const col = document.createElement('div');
-          col.className = 'col-sm-6 col-lg-4';
+        [...filesInput.files].forEach(file => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'preview-item';
+
           const url = URL.createObjectURL(file);
-          const isVideo = file.type.startsWith('video') || /\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i.test(file.name);
-          col.innerHTML = isVideo
-            ? `<video class="w-100 rounded" src="${url}" controls muted></video>`
-            : `<img class="w-100 rounded" src="${url}" alt="preview" />`;
-          selectedGrid.appendChild(col);
-          const media = col.querySelector('video, img');
-          media.addEventListener('loadeddata', () => URL.revokeObjectURL(url), { once: true });
-          media.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+          const isVideo = file.type.startsWith('video');
+
+          // Creamos el elemento media de forma dinámica
+          let mediaEl;
+          if (isVideo) {
+            mediaEl = document.createElement('video');
+            mediaEl.muted = true;
+            mediaEl.autoplay = true;
+            mediaEl.loop = true;
+          } else {
+            mediaEl = document.createElement('img');
+            mediaEl.alt = 'preview';
+          }
+          mediaEl.src = url;
+
+          // Revocamos la URL cuando termine de cargarse el media
+          const revoke = () => URL.revokeObjectURL(url);
+          if (isVideo) {
+            mediaEl.addEventListener('loadeddata', revoke, { once: true });
+          } else {
+            mediaEl.addEventListener('load', revoke, { once: true });
+          }
+
+          // Botón de quitar
+          const btn = document.createElement('button');
+          btn.className = 'remove-btn';
+          btn.innerHTML = '&times;';
+          btn.dataset.name = file.name;
+          btn.addEventListener('click', () => removeFile(file.name));
+
+          // Montamos todo
+          wrapper.appendChild(btn);
+          wrapper.appendChild(mediaEl);
+          selectedGrid.appendChild(wrapper);
         });
+      }
+
+
+      function removeFile(name) {
+        const dt = new DataTransfer();
+        [...filesInput.files].forEach(f => {
+          if (f.name !== name) dt.items.add(f);
+        });
+        filesInput.files = dt.files;
+        updateFormatOptions();
       }
 
       function updateFormatOptions() {
         const select = $('#target_format');
         select.innerHTML = '';
-        const files = $('#files').files;
-        if (!files.length) {
+        if (!filesInput.files.length) {
           select.innerHTML = '<option value="">Selecciona un archivo primero</option>';
-          renderSelectedPreviews();
-          return;
+        } else {
+          const first = filesInput.files[0];
+          const formats = first.type.startsWith('video')
+            ? ['mp4','avi','mkv','mov','wmv','flv','webm']
+            : ['jpg','jpeg','png','webp','gif','bmp'];
+          select.innerHTML = formats.map(f => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
         }
-        const first = files[0];
-        const list = first.type.startsWith('video') || /\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i.test(first.name)
-          ? videoFormats : imageFormats;
-        select.innerHTML = list.map(fmt => `<option value="${fmt}">${fmt.toUpperCase()}</option>`).join('');
         renderSelectedPreviews();
       }
 
-      $('#qualitySlider').addEventListener('input', e => $('#qualityValue').textContent = e.target.value);
-      const dropArea = $('#dropArea');
-      ['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, e => { e.preventDefault(); dropArea.classList.add('dragover'); }));
-      ['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, e => { e.preventDefault(); dropArea.classList.remove('dragover'); }));
-      dropArea.addEventListener('click', () => $('#files').click());
-      dropArea.addEventListener('drop', e => {const dt=new DataTransfer();[...e.dataTransfer.files].forEach(f=>dt.items.add(f));try{$('#files').files=dt.files;}catch{alert('Tu navegador no permite arrastre; usa el botón.');}updateFormatOptions();});
-      $('#files').addEventListener('change', updateFormatOptions);
-
-      $('#btnConvert').addEventListener('click', async () => {
-        if (!$('#files').files.length) return alert('Selecciona al menos un archivo.');
-        if (!$('#target_format').value) return alert('Selecciona el formato de salida.');
+      // Conversión y polling
+      document.getElementById('btnConvert').addEventListener('click', async () => {
+        if (!filesInput.files.length) return alert('Selecciona al menos un archivo.');
+        const format = $('#target_format').value;
+        if (!format) return alert('Selecciona el formato de salida.');
         document.getElementById('conversionContainer').classList.add('active');
         const fd = new FormData();
-        [...$('#files').files].forEach(f => fd.append('files', f));
-        fd.append('target_format', $('#target_format').value);
+        [...filesInput.files].forEach(f => fd.append('files', f));
+        fd.append('target_format', format);
         fd.append('quality_level', $('#qualitySlider').value);
-        $('#progressArea').innerHTML = `<div class="progress" role="progressbar"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:50%"></div></div>`;
+
+        $('#progressArea').innerHTML = `<div class=\"progress\" role=\"progressbar\"><div class=\"progress-bar progress-bar-striped progress-bar-animated\" style=\"width:0%\"></div></div>`;
         previewGrid.innerHTML = '';
+
         try {
-          const { ok, json } = await fetchJSON('/convert', { method: 'POST', body: fd });
-          if (!ok || json.status !== 'ok') throw new Error(json.message || 'Error de conversión');
-          $('#progressArea').innerHTML = '';
-          json.tasks.forEach(createTaskCard);
+          const res = await fetch('/convert', { method: 'POST', body: fd });
+          const { tasks } = await res.json();
+          tasks.forEach(task => createTaskCard(task));
         } catch (err) {
-          $('#progressArea').innerHTML = `<div class="alert alert-danger">${err.message||err}</div>`;
+          $('#progressArea').innerHTML = `<div class=\"alert alert-danger\">${err.message}</div>`;
         }
       });
 
       function createTaskCard({ task_id, input_file, output_file }) {
         const col = document.createElement('div');
         col.className = 'col-sm-6 col-lg-4'; col.id = `card-${task_id}`;
-        col.innerHTML = `<div class="card h-100 shadow-sm"><div class="card-body d-flex flex-column"><h5 class="card-title">${input_file}</h5><p class="text-muted small mb-3">${output_file}</p><div class="mt-auto"><span class="badge text-bg-warning">Procesando…</span></div></div></div>`;
-        previewGrid.appendChild(col);
+        col.innerHTML = `
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">${input_file}</h5>
+              <p class="text-muted small mb-3">${output_file}</p>
+               <div class="status-badge-container">
+                <span class="status-badge processing">Procesando…</span>
+               </div>
+            </div>
+          </div>
+        `;
+        $('#previewGrid').appendChild(col);
         pollStatus(task_id, output_file);
       }
 
       async function pollStatus(id, filename) {
         try {
-          const { json } = await fetchJSON(`/task_status/${id}`);
-          const badge = document.querySelector(`#card-${id} .badge`);
-          if (json.status === 'running') {
+          const res = await fetch(`/task_status/${id}`);
+          const { status, success } = await res.json();
+          const badge = document.querySelector(`#card-${id} .status-badge`);
+          if (status === 'running') {
+            badge.style.width = badge.style.width || '0%';
+            badge.parentElement.previousElementSibling.querySelector('.progress-bar').style.width = '50%';
             setTimeout(() => pollStatus(id, filename), 2000);
-          } else if (json.status === 'done' && json.success) {
-            badge.className = 'badge text-bg-success';
+          } else if (status === 'done' && success) {
+            badge.className = 'status-badge completed';
             badge.textContent = 'Completado';
             showPreview(filename, id);
           } else {
             badge.className = 'badge text-bg-danger';
             badge.textContent = 'Error';
           }
-        } catch {
+        } catch (err) {
           setTimeout(() => pollStatus(id, filename), 4000);
         }
       }
@@ -236,10 +339,10 @@
         const ext = name.split('.').pop().toLowerCase();
         const src = `/converted/${encodeURIComponent(name)}`;
         const container = document.querySelector(`#card-${id} .card`);
-        const html = ['mp4','webm','mov','mkv','avi'].includes(ext)
-          ? `<video class="w-100 mt-3 rounded" controls src="${src}"></video>`
-          : `<img class="w-100 mt-3 rounded" src="${src}" alt="preview" />`;
-        container.insertAdjacentHTML('beforeend', html);
+        const mediaHtml = ['mp4','webm','mov','mkv','avi'].includes(ext)
+          ? `<video class=\"w-100 mt-3 rounded\" controls src=\"${src}\"></video>`
+          : `<img class=\"w-100 mt-3 rounded\" src=\"${src}\" alt=\"preview\" />`;
+        container.insertAdjacentHTML('beforeend', mediaHtml);
       }
     </script>
   </body>
