@@ -1,4 +1,5 @@
 body { background: #f5f7fa; }
+
 .dropzone {
     border: 2px dashed #6c63ff;
     border-radius: 2rem;
@@ -7,6 +8,7 @@ body { background: #f5f7fa; }
     cursor: pointer;
     transition: background 0.2s;
 }
+
 .dropzone.dragover { background: #ebe9ff; }
 
 .conversion-container {
@@ -16,31 +18,38 @@ body { background: #f5f7fa; }
     width: 100%;
     gap: 0;
 }
+
 .selected-section,
+
 .results-section {
     background: #fff;
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.6s ease;
 }
+
 .selected-section {
     padding: 1rem;
     max-width: 60vw;
     width: 100%;
 }
+
 .results-section {
     padding: 1rem;
     display: none;
     opacity: 0;
 }
+
 .conversion-container.active {
     grid-template-columns: 1fr 1fr;
     justify-items: stretch;
     gap: 2rem;
 }
+
 .conversion-container.active .selected-section {
     max-width: none;
 }
+
 .conversion-container.active .results-section {
     display: block;
     opacity: 1;
@@ -51,13 +60,16 @@ body { background: #f5f7fa; }
     position: relative;
     padding: 0.25rem;
 }
+
 .preview-item video,
+
 .preview-item img {
     max-width: 80px;
     max-height: 80px;
     border-radius: 0.5rem;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
+
 .remove-btn {
     position: absolute;
     top: 2px;
@@ -74,6 +86,7 @@ body { background: #f5f7fa; }
     justify-content: center;
     cursor: pointer;
 }
+
 .remove-btn:hover {
     background: rgba(255,0,0,0.8);
     color: #fff;
@@ -86,6 +99,7 @@ body { background: #f5f7fa; }
 }
 
 .preview-item img,
+
 .preview-item video {
     width: 100%;
     height: auto;
@@ -97,6 +111,7 @@ body { background: #f5f7fa; }
     display: flex;
     flex-direction: column;
 }
+
 /* Contenedor del badge, para alinearlo al principio y separarlo del contenido */
 .status-badge-container {
     align-self: flex-start;  /* arriba a la izquierda */
@@ -113,7 +128,8 @@ body { background: #f5f7fa; }
     color: #fff;                 /* texto en blanco */
     white-space: nowrap;         /* sin saltos de línea */
     text-align: center;          /* centrado horizontal */
-    min-width: 5rem;             /* no se encoja demasiado */
+    width: fit-content;          /* o bien width: auto; */
+    min-width: 10rem;            /* no se encoja demasiado */
     box-sizing: border-box;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);  /* sombra suave */
 }
