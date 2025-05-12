@@ -22,6 +22,7 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
     global_options = ['-hide_banner', '-loglevel', 'error']
 
     if is_video:
+        '''
         output_options['format'] = target_format
 
         # Mapeo de Calidad (1-100) a CRF (para libx264)
@@ -38,6 +39,38 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
         audio_bitrate = int(min_audio_br + (quality_level - 1) * (max_audio_br - min_audio_br) / 99)
         output_options['audio_bitrate'] = f"{audio_bitrate}k"
         output_options['pix_fmt'] = 'yuv420p'
+        '''
+        # Mapeo de extensiones a contenedores FFmpeg
+        fmt = target_format.lower()
+        if fmt == 'wmv':
+            output_options['format'] = 'asf'
+            # Para calidad alta, puedes escoger wmv3 si tu build lo soporta
+            output_options['vcodec'] = 'wmv2'
+            output_options['acodec'] = 'wmav2'
+            # Ajustar bitrate de vídeo según calidad (opcional)
+            min_br, max_br = 500, 2500  # en kbit/s
+            v_bitrate = int(min_br + (quality_level - 1) * (max_br - min_br) / 99)
+            output_options['video_bitrate'] = f"{v_bitrate}k"
+            # Ajustar bitrate de audio
+            min_ab, max_ab = 64, 192
+            a_bitrate = int(min_ab + (quality_level - 1) * (max_ab - min_ab) / 99)
+            output_options['audio_bitrate'] = f"{a_bitrate}k"
+        else:
+            # Para mkv usa matroska; el resto directamente
+            output_options['format'] = 'matroska' if fmt == 'mkv' else target_format
+            # Mapeo de Calidad (1-100) a CRF para libx264
+            min_crf, max_crf = 18, 35
+            crf_value = round(max_crf - (quality_level - 1) * (max_crf - min_crf) / 99)
+            output_options['crf'] = crf_value
+            output_options['vcodec'] = 'libx264'
+            output_options['preset'] = 'fast'
+            # Audio en AAC
+            output_options['acodec'] = 'aac'
+            min_ab, max_ab = 64, 192
+            a_bitrate = int(min_ab + (quality_level - 1) * (max_ab - min_ab) / 99)
+            output_options['audio_bitrate'] = f"{a_bitrate}k"
+            # Formato de píxeles seguro
+            output_options['pix_fmt'] = 'yuv420p'
 
         stream = ffmpeg.input(input_file)
         output_stream = ffmpeg.output(stream.video, stream.audio, output_file, **output_options)
