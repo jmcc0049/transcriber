@@ -22,6 +22,7 @@ app.config['CONVERSIONS_FOLDER'] = CONVERSIONS_FOLDER
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) # Usar número de CPUs como workers
 tasks = {} # Diccionario para seguir el estado de las tareas futuras
 
+# Rutas de apoyo para favicon
 @app.route('/favicon.png')
 def favicon_png():
     return send_from_directory('static', 'favicon.png')
@@ -30,6 +31,7 @@ def favicon_png():
 def favicon_ico():
     return send_from_directory('static', 'favicon.ico')
 
+# Ruta principal para la interfaz de usuario
 @app.route('/')
 def index():
     # Opciones de formato ampliadas para vídeos e imágenes.
@@ -37,7 +39,7 @@ def index():
     image_formats = ['jpg', 'png', 'webp', 'gif', 'bmp', 'tiff'] # Formatos de imagen ampliados
     return render_template('index.html', video_formats=video_formats, image_formats=image_formats)
 
-
+# Endpoint principal para conversión de archivos
 @app.route('/convert', methods=['POST'])
 def convert():
     files = request.files.getlist('files')
@@ -106,7 +108,7 @@ def convert():
                 is_video = False
                 file_type_determined_by = "MIME (audio)"
 
-        if is_video is None: # Si MIME no fue útil
+        if is_video is None: # En caso de que MIME no sea concluyente
             _, ext = os.path.splitext(original_filename)
             ext = ext.lower()
             print(f"  MIME no concluyente, comprobando extensión: '{ext}'") # LOG EXTENSION
@@ -116,6 +118,9 @@ def convert():
             elif ext in image_exts:
                 is_video = False
                 file_type_determined_by = f"Extensión ({ext} - image)"
+            elif ext in audio_exts:
+                is_video = False
+                file_type_determined_by = f"Extensión ({ext} - audio)"
 
         if is_video is None: # Si ni MIME ni extensión funcionaron
             print(f"  SALTANDO archivo: Tipo no reconocido (MIME: '{mime}', Ext: '{ext}')") # LOG SALTO TIPO
@@ -134,10 +139,12 @@ def convert():
         output_path = os.path.join(app.config['CONVERSIONS_FOLDER'], output_filename)
 
         print(f"  Preparando tarea: {input_path} -> {output_path}") # LOG TAREA
+
         future = executor.submit(convert_file, input_path, output_path, is_video, quality_level, target_format)
         task_id = uuid.uuid4().hex
         tasks[task_id] = {'future': future, 'input_file': original_filename, 'output_file': output_filename}
         results.append({'task_id': task_id, 'input_file': original_filename, 'output_file': output_filename})
+
         print(f"  Tarea {task_id} añadida.") # LOG TAREA OK
 
     print(f"\nProcesamiento de archivos terminado. Tareas válidas creadas: {len(results)}") # LOG FIN BUCLE
@@ -145,10 +152,10 @@ def convert():
          print("ERROR FINAL: No se crearon tareas válidas.") # LOG ERROR FINAL
          return jsonify({'status': 'error', 'message': 'No se seleccionaron archivos válidos para conversión.'})
 
-    print("Devolviendo respuesta OK con tareas.") # LOG OK
+    print("Tareas finalizadas correctamente.") # LOG OK
     return jsonify({'status': 'ok', 'tasks': results})
 
-
+# Ruta para consultar el estado de una tarea (polling desde el front-end)
 @app.route('/task_status/<string:task_id>') # ID es string (UUID)
 def task_status(task_id):
     task_info = tasks.get(task_id)
@@ -176,8 +183,8 @@ def task_status(task_id):
             })
     else:
         return jsonify({'status': 'running'})
-
-
+    
+# Ruta para servir archivos convertidos
 @app.route('/converted/<path:filename>')
 def converted_file(filename):
     """
@@ -186,6 +193,7 @@ def converted_file(filename):
     """
     return send_from_directory(app.config['CONVERSIONS_FOLDER'], filename)
 
+# Ruta para descargar archivos convertidos
 @app.route('/download/<path:filename>')
 def download_file(filename):
     """

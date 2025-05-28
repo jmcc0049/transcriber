@@ -70,6 +70,7 @@ function renderSelectedPreviews() {
     });
 }
 
+/* Manejo de archivos seleccionados ------------------*/
 function removeFile(name) {
     const dt = new DataTransfer();
     [...filesInput.files].forEach(f => {
@@ -79,6 +80,7 @@ function removeFile(name) {
     updateFormatOptions();
 }
 
+/* Actualización de opciones de formato ------------------*/
 function updateFormatOptions() {
     const select = $('#target_format');
     select.innerHTML = '';
@@ -123,6 +125,7 @@ $('#btnConvert').addEventListener('click', async () => {
     }
 });
 
+/* Creación de tarjetas de tareas ------------------*/
 function createTaskCard({ task_id, input_file, output_file }) {
     const col = document.createElement('div');
     col.className = 'col-sm-6 col-lg-4'; col.id = `card-${task_id}`;

@@ -4,10 +4,7 @@ import tempfile
 import subprocess  # Usar subprocess puede dar más control y mejor manejo de errores
 
 # --- Listas de extensiones ----------------------------------
-VIDEO_EXTS = {'.mp4', '.m4v', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.mpg', '.mpeg', '.3gp'}
-IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif'}
-AUDIO_EXTS = {'.mp3', '.aac', '.m4a', '.wav', '.flac', '.ogg', '.opus', '.wma'}
-LOSSLESS_AUDIO = {'.flac', '.wav'}
+AUDIO_EXTS = {'.mp3', '.aac', '.m4a', '.wav', '.flac', '.ogg', '.opus', '.wma', '.flac', '.wav'}
 
 def heif_to_png(src):
     """
@@ -66,29 +63,11 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
     fmt_out = target_format.lower()
 
     if is_video:
-        '''
-        output_options['format'] = target_format
-
-        # Mapeo de Calidad (1-100) a CRF (para libx264)
-        min_crf = 18
-        max_crf = 35
-        crf_value = round(max_crf - (quality_level - 1) * (max_crf - min_crf) / 99)
-        output_options['crf'] = crf_value
-        output_options['vcodec'] = 'libx264'
-        output_options['acodec'] = 'aac'
-        output_options['preset'] = 'fast'
-
-        min_audio_br = 64
-        max_audio_br = 192
-        audio_bitrate = int(min_audio_br + (quality_level - 1) * (max_audio_br - min_audio_br) / 99)
-        output_options['audio_bitrate'] = f"{audio_bitrate}k"
-        output_options['pix_fmt'] = 'yuv420p'
-        '''
         # Mapeo de extensiones a contenedores FFmpeg
         fmt = target_format.lower()
         if fmt == 'wmv':
             output_options['format'] = 'asf'
-            # Para calidad alta, puedes escoger wmv3 si tu build lo soporta
+            # Para alta calidad
             output_options['vcodec'] = 'wmv2'
             output_options['acodec'] = 'wmav2'
             # Ajustar bitrate de vídeo según calidad (opcional)
@@ -99,6 +78,19 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
             min_ab, max_ab = 64, 192
             a_bitrate = int(min_ab + (quality_level - 1) * (max_ab - min_ab) / 99)
             output_options['audio_bitrate'] = f"{a_bitrate}k"
+        elif fmt == 'webm':
+            output_options['format'] = 'webm'
+            output_options['vcodec'] = 'libvpx-vp9'
+            # Asigna bitrate según el deslizador de calidad (kbit/s)
+            min_br, max_br = 500, 3500
+            v_bitrate = int(min_br + (quality_level - 1) * (max_br - min_br) / 99)
+            output_options['video_bitrate'] = f'{v_bitrate}k'
+            output_options['acodec'] = 'libopus'      # audio Opus
+            min_ab, max_ab = 64, 192
+            a_bitrate = int(min_ab + (quality_level - 1) * (max_ab - min_ab) / 99)
+            output_options['audio_bitrate'] = f'{a_bitrate}k'
+            # WebM no necesita pix_fmt específico, pero yuv420p es seguro
+            output_options['pix_fmt'] = 'yuv420p'
         else:
             # Para mkv usa matroska; el resto directamente
             output_options['format'] = 'matroska' if fmt == 'mkv' else target_format
@@ -106,6 +98,7 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
             min_crf, max_crf = 18, 35
             crf_value = round(max_crf - (quality_level - 1) * (max_crf - min_crf) / 99)
             output_options['crf'] = crf_value
+            # Utilizamos H.264 como códec de vídeo por defecto
             output_options['vcodec'] = 'libx264'
             output_options['preset'] = 'fast'
             # Audio en AAC
