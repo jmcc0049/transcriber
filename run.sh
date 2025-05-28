@@ -17,5 +17,6 @@ export FLASK_ENV=production
 export FLASK_RUN_PORT=8000
 export FLASK_RUN_HOST=0.0.0.0
 
-# Ejecutar con el servidor de desarrollo de Flask
+# Ejecutar con el servidor Flask
+cd "$APP_DIR"
 flask run
