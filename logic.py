@@ -1,6 +1,23 @@
 import os
 import ffmpeg
+import tempfile
 import subprocess  # Usar subprocess puede dar más control y mejor manejo de errores
+
+def heif_to_png(src):
+    """
+    Convierte un HEIC/HEIF a PNG usando heif-convert y devuelve
+    la ruta del PNG temporal (caller debe borrarlo). Devuelve None en error.
+    """
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.close()                       # cerramos para que heif-convert pueda escribir
+    cmd = ['heif-convert', src, tmp.name]
+    try:
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return tmp.name
+    except subprocess.CalledProcessError as e:
+        os.remove(tmp.name)
+        print(f"heif-convert falló con código {e.returncode}")
+        return None
 
 def convert_file(input_file, output_file, is_video, quality_level, target_format):
     """
@@ -20,6 +37,21 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
 
     output_options = {}
     global_options = ['-hide_banner', '-loglevel', 'error']
+
+    # --- HEIC/HEIF fallback ---------------------------------
+    ext = os.path.splitext(input_file)[1].lower()
+    temp_image = None  # para limpieza al final
+
+    # Solo para imágenes, no vídeo
+    if not is_video and ext in ('.heic', '.heif'):
+        temp_image = heif_to_png(input_file)
+        if temp_image is None:
+            return (False, os.path.basename(input_file),
+                    "heif-convert no pudo recomponer la imagen.")
+        input_for_ffmpeg = temp_image  # usamos el PNG
+    else:
+        input_for_ffmpeg = input_file
+    # --------------------------------------------------------
 
     if is_video:
         '''
@@ -72,11 +104,11 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
             # Formato de píxeles seguro
             output_options['pix_fmt'] = 'yuv420p'
 
-        stream = ffmpeg.input(input_file)
+        stream = ffmpeg.input(input_for_ffmpeg)
         output_stream = ffmpeg.output(stream.video, stream.audio, output_file, **output_options)
 
     else:
-        stream = ffmpeg.input(input_file)
+        stream = ffmpeg.input(input_for_ffmpeg)
         fmt_lower = target_format.lower()
 
         # Asegurar que no se fuerce un formato de contenedor erróneo (como -f png)
@@ -128,6 +160,8 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
             print(f"Archivo convertido exitosamente: {output_file}")
             try:
                 os.remove(input_file)
+                if temp_image and os.path.exists(temp_image):
+                    os.remove(temp_image)
                 print(f"Archivo de entrada eliminado: {input_file}")
             except OSError as e:
                 print(f"Advertencia: No se pudo eliminar el archivo de entrada {input_file}: {e}")
