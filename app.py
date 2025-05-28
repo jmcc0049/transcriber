@@ -165,7 +165,7 @@ def task_status(task_id):
     future = task_info['future']
     if future.done():
         try:
-            success, file_in_uuid, info_or_path = future.result()
+            success, info_or_path = future.result()
             return jsonify({
                 'status': 'done',
                 'success': success,
@@ -209,4 +209,4 @@ def download_file(filename):
         return jsonify({'status': 'error', 'message': 'Archivo no encontrado.'}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0') # Ejecutar en todas las interfaces para acceso en red local si es necesario
+    app.run(host='0.0.0.0') # Ejecutar en todas las interfaces para acceso en red local si es necesario
