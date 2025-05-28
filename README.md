@@ -44,6 +44,24 @@ SPA ← poll /task_status <id> ←─────────┘
 - **Conversión** (`logic.py`)  
   Genera dinámicamente la línea de comandos de FFmpeg (o `heif-convert` para HEIC) y limpia los temporales.
 
+## ⚠️ Excepciones/Casos Especiales en la conversión
+Aunque la conversión multi-formato se resuelve de manera general con FFmpeg, algunos formatos requieren un tratamiento especial por sus particularidades técnicas:
+
+  1. Formatos de imagen HEIF/HEIC (Procesamiento en bloques 512x512):
+  Las imágenes HEIF/HEIC pueden estar codificadas internamente en bloques de 512x512 píxeles, lo que puede llevar a que, tras una conversión directa, sólo se obtenga una parte de la imagen original o una resolución limitada si no se maneja correctamente.
+  Conversión auxiliar: Para asegurar una conversión fiable, se realiza primero una conversión intermedia a PNG mediante la utilidad heif-convert antes de pasar el archivo a FFmpeg. Esto garantiza la extracción completa de la imagen, independientemente de cómo esté segmentada internamente.
+
+  2. Formatos de vídeo WebM y WMV (Restricción de códecs de audio):
+  El contenedor WebM, por estándar, solo admite ciertos formatos de audio (principalmente Opus y Vorbis). Intentar multiplexar audio en formatos como AAC o MP3 dentro de un WebM produce errores de incompatibilidad o archivos corruptos.
+  Selección automática de códec: El backend detecta cuando la salida es WebM y ajusta automáticamente el códec de audio a uno compatible (usualmente Opus), aunque el usuario haya seleccionado otra preferencia, para asegurar la interoperabilidad y reproducción correcta en navegadores modernos.
+
+  3. Limitaciones en vistas previas:
+  La previsualización automática sólo es posible en aquellos formatos soportados por el navegador del usuario (por ejemplo, MP4/H.264/AAC y WebM/VP9/Opus). Otros formatos menos habituales pueden requerir descarga manual para su reproducción.
+
+  4. Cambios en la lógica del deslizador de calidad:
+  Cuando el usuario selecciona un formato de salida sin pérdida (lossless), como WAV o FLAC, el deslizador de calidad deja de controlar el parámetro típico de bitrate o CRF, y pasa a gestionar el ratio de compresión (en el caso de FLAC) o se desactiva (en WAV, ya que no existe compresión).
+      - En FLAC, un valor bajo en el deslizador implica una mayor velocidad de codificación y menor compresión, mientras que valores altos implican máxima compresión (pero mayor uso de CPU y menor velocidad).
+      - En WAV, la calidad siempre es máxima (sin compresión), por lo que el deslizador queda inutilizado o deshabilitado automáticamente.
 
 ## 💡 Lecciones aprendidas
 
