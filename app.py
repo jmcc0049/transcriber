@@ -165,7 +165,12 @@ def task_status(task_id):
     future = task_info['future']
     if future.done():
         try:
+            # success, info_or_path = future.result()
+            success, _orig, info_or_path = future.result()
+        except ValueError:
             success, info_or_path = future.result()
+        
+        try:
             return jsonify({
                 'status': 'done',
                 'success': success,

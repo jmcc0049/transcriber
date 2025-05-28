@@ -50,3 +50,12 @@ SPA ← poll /task_status <id> ←─────────┘
 1. **HEIF/HEIC**: Muchos navegadores no soportan vistas previas; se añadió un paso a PNG usando `heif-convert` antes de invocar FFmpeg.  
 2. **Seguridad**: Se validan *MIME* y extensión antes de ejecutar FFmpeg para evitar inyección de parámetros.  
 3. **Escalabilidad**: Stateless; puede crecer horizontalmente detrás de Nginx con un almacén compartido (por ejemplo, el servicio S3 de AWS).
+
+## ✍️ Experiencia personal
+El planteamiento inicial del proyecto fue desarrollarlo completamente en C++, buscando la máxima eficiencia y control sobre los procesos de conversión multimedia. Sin embargo, pronto surgieron varias limitaciones importantes:
+
+- Escasez de frameworks fiables para construir APIs REST: En C/C++, la mayoría de soluciones para exponer una API web son muy básicas o requieren una infraestructura compleja, lo que dificulta construir una interfaz moderna y mantenible.
+
+- Integración poco amigable con FFmpeg: Aunque FFmpeg está escrito en C, la utilización directa de su API resulta poco práctica para aplicaciones web modernas, y su integración con frameworks de C es limitada, especialmente cuando se requieren operaciones asincrónicas y procesamiento en segundo plano.
+
+- Desarrollo y mantenimiento: El desarrollo en C para este tipo de aplicación implica mayor carga de trabajo, especialmente en la gestión de memoria y concurrencia, lo que ralentiza la iteración y aumenta la probabilidad de errores difíciles de depurar.
