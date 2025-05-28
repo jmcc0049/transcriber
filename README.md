@@ -25,7 +25,7 @@ SPA (HTML/JS) ───── fetch /convert ─────┐
 
 │
 
-Flask (WSGI) ➜ ThreadPool ➜ convert_file() ➜ FFmpeg
+Waitress (WSGI) ➜ ThreadPool ➜ convert_file() ➜ FFmpeg
 
 │
 
@@ -39,7 +39,7 @@ SPA ← poll /task_status <id> ←─────────┘
   3. Hace *polling* al estado y muestra miniaturas o reproductores nativos.
 
 - **Back-end** (`app.py`)  
-  API REST en Flask. Cada archivo se encola en un *future*, aprovechando al máximo las capacidades del host.
+  API REST en Flask (en producción se usará Waitress como WSGI). Cada archivo se encola en un *future*, aprovechando al máximo las capacidades del host.
 
 - **Conversión** (`logic.py`)  
   Genera dinámicamente la línea de comandos de FFmpeg (o `heif-convert` para HEIC) y limpia los temporales.

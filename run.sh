@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$HOME/transcriber}"
-APP_FILE="app.py"
+APP_FILE="app"
 
 # Activar entorno virtual, o instalar si no existe
 if [[ ! -f "$APP_DIR/venv/bin/activate" ]]; then
@@ -12,11 +12,8 @@ fi
 
 source "$APP_DIR/venv/bin/activate"
 
-export FLASK_APP="$APP_FILE"
-export FLASK_ENV=production
-export FLASK_RUN_PORT=8000
-export FLASK_RUN_HOST=0.0.0.0
+export WAITRESS_LISTEN="0.0.0.0:5000"
 
-# Ejecutar con el servidor Flask
+# Ejecutar con el servidor Waitress
 cd "$APP_DIR"
-flask run
+waitress-serve --listen=$WAITRESS_LISTEN "$APP_FILE":app
