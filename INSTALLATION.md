@@ -1,5 +1,7 @@
 # Installation
 
+Descarga los archivos *install.sh* y *run.sh* de la carpeta raíz del repositorio, y después:
+
 ```bash
 chmod +x install.sh run.sh   # Haz los scripts ejecutables
 ./install.sh                 # 1. Instalación de dependencias y entorno
