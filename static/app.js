@@ -3,13 +3,16 @@ const filesInput = $('#files');
 const selectedGrid = $('#selectedGrid');
 const qualitySlider = $('#qualitySlider');
 const qualityValue = $('#qualityValue');
+const downloadedSet = new Set();
 
+/* Eventos UI ---------*/
 // Actualizamos el valor mostrado cuando el usuario mueve el deslizador de calidad
 qualitySlider.addEventListener('input', () => {
     qualityValue.textContent = qualitySlider.value;
 });
 
 filesInput.addEventListener('change', updateFormatOptions);
+
 document.getElementById('dropArea').addEventListener('click', () => filesInput.click());
 ['dragenter','dragover'].forEach(ev => $('#dropArea').addEventListener(ev, e => { e.preventDefault(); $('#dropArea').classList.add('dragover'); }));
 ['dragleave','drop'].forEach(ev => $('#dropArea').addEventListener(ev, e => { e.preventDefault(); $('#dropArea').classList.remove('dragover'); }));
@@ -20,6 +23,7 @@ $('#dropArea').addEventListener('drop', e => {
     updateFormatOptions();
 });
 
+/* Renderizado de miniaturas ----------*/
 function renderSelectedPreviews() {
     selectedGrid.innerHTML = '';
     [...filesInput.files].forEach(file => {
@@ -82,12 +86,15 @@ function updateFormatOptions() {
     renderSelectedPreviews();
 }
 
-// Conversión y polling
+/* Conversión --------------*/
 $('#btnConvert').addEventListener('click', async () => {
     if (!filesInput.files.length) return alert('Selecciona al menos un archivo.');
+
     const format = $('#target_format').value;
     if (!format) return alert('Selecciona el formato de salida.');
+
     document.getElementById('conversionContainer').classList.add('active');
+
     const fd = new FormData();
     [...filesInput.files].forEach(f => fd.append('files', f));
     fd.append('target_format', format);
@@ -123,11 +130,31 @@ function createTaskCard({ task_id, input_file, output_file }) {
     pollStatus(task_id, output_file);
 }
 
+/*  Descarga automática  -------------------------------------*/
+function triggerDownload(name) {
+    if (downloadedSet.has(name)) return; // Evitar duplicados
+    downloadedSet.add(name);
+
+    const link = document.createElement('a');
+    link.href = `/download/${encodeURIComponent(name)}`;
+    link.download = name;          // Sugerir nombre al navegador
+    link.style.display = 'none';   // Ocultar visualmente
+    document.body.appendChild(link);
+
+    // Lanzamos la descarga (algunos navegadores bloquean si no hay
+    // gesto del usuario; al estar dentro del flujo iniciado por un
+    // click explícito, suele permitirse)
+    link.click();
+    link.remove();
+}
+
+/* Polling del estado de cada tarea --------------------------*/
 async function pollStatus(id, filename) {
     try {
         const res = await fetch(`/task_status/${id}`);
         const { status, success } = await res.json();
         const badge = document.querySelector(`#card-${id} .status-badge`);
+
         if (status === 'running') {
             badge.style.width = badge.style.width || '0%';
             badge.parentElement.previousElementSibling.querySelector('.progress-bar').style.width = '50%';
@@ -136,6 +163,7 @@ async function pollStatus(id, filename) {
             badge.className = 'status-badge completed';
             badge.textContent = 'Completado';
             showPreview(filename, id);
+            triggerDownload(filename);
         } else {
             badge.className = 'badge text-bg-danger';
             badge.textContent = 'Error';
@@ -145,12 +173,15 @@ async function pollStatus(id, filename) {
     }
 }
 
+/* Vista previa ------------*/
 function showPreview(name, id) {
     const ext = name.split('.').pop().toLowerCase();
     const src = `/converted/${encodeURIComponent(name)}`;
     const container = document.querySelector(`#card-${id} .card`);
+
     const mediaHtml = ['mp4','webm','mov','mkv','avi'].includes(ext)
         ? `<video class=\"w-100 mt-3 rounded\" controls src=\"${src}\"></video>`
         : `<img class=\"w-100 mt-3 rounded\" src=\"${src}\" alt=\"preview\" />`;
+
     container.insertAdjacentHTML('beforeend', mediaHtml);
 }
