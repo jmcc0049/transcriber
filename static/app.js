@@ -39,9 +39,15 @@ function renderSelectedPreviews() {
             mediaEl.muted = true;
             mediaEl.autoplay = true;
             mediaEl.loop = true;
-        } else {
-            mediaEl = document.createElement('img');
-            mediaEl.alt = 'preview';
+        } else{
+            const isAudio = file.type.startsWith('audio');
+            if (isAudio) {
+                mediaEl = document.createElement('audio');
+                mediaEl.controls = true;
+            } else{
+                mediaEl = document.createElement('img');
+                mediaEl.alt = 'preview';
+            }
         }
         mediaEl.src = url;
 
@@ -80,7 +86,12 @@ function updateFormatOptions() {
         select.innerHTML = '<option value="">Selecciona un archivo primero</option>';
     } else {
         const first = filesInput.files[0];
-        const formats = first.type.startsWith('video') ? ['mp4','avi','mkv','mov','wmv','flv','webm'] : ['jpg','jpeg','png','webp','gif','bmp'];
+        let formats;
+        if(first.type.startsWith('video')) formats = ['mp4','avi','mkv','mov','wmv','flv','webm'];
+        else{
+            if(first.type.startsWith('audio')) formats = ['mp3','m4a','flac','ogg','opus','wav','wma','aac'];
+            else formats = ['jpg','jpeg','png','webp','gif','bmp'];
+        }
         select.innerHTML = formats.map(f => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
     }
     renderSelectedPreviews();
@@ -179,9 +190,49 @@ function showPreview(name, id) {
     const src = `/converted/${encodeURIComponent(name)}`;
     const container = document.querySelector(`#card-${id} .card`);
 
-    const mediaHtml = ['mp4','webm','mov','mkv','avi'].includes(ext)
-        ? `<video class=\"w-100 mt-3 rounded\" controls src=\"${src}\"></video>`
-        : `<img class=\"w-100 mt-3 rounded\" src=\"${src}\" alt=\"preview\" />`;
+    const videoExts = ['mp4', 'webm', 'mov', 'mkv', 'avi'];
+    const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'opus', 'm4a', 'aac', 'wma'];
+
+    let mediaHtml;
+    if (videoExts.includes(ext)) {
+        // Vista previa de vídeo
+        mediaHtml = `
+            <video 
+                class="w-100 mt-3 rounded"
+                src="${src}"
+                controls
+                preload="metadata"
+                poster="/static/video_placeholder.png"
+                style="max-height:240px;"
+            >
+                Tu navegador no soporta el elemento <code>video</code>.
+            </video>
+        `;
+    } else if (audioExts.includes(ext)) {
+        // Vista previa de audio
+        mediaHtml = `
+            <audio 
+                class="w-100 mt-3 rounded"
+                src="${src}"
+                controls
+                preload="auto"
+                title="Previsualización de audio"
+                style="width:100%;"
+            >
+                Tu navegador no soporta el elemento <code>audio</code>.
+            </audio>
+        `;
+    } else {
+        // Vista previa de imagen
+        mediaHtml = `
+            <img 
+                class="w-100 mt-3 rounded"
+                src="${src}"
+                alt="Vista previa"
+                style="object-fit:contain;max-height:240px;"
+            />
+        `;
+    }
 
     container.insertAdjacentHTML('beforeend', mediaHtml);
 }

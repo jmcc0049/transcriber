@@ -3,6 +3,12 @@ import ffmpeg
 import tempfile
 import subprocess  # Usar subprocess puede dar más control y mejor manejo de errores
 
+# --- Listas de extensiones ----------------------------------
+VIDEO_EXTS = {'.mp4', '.m4v', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.mpg', '.mpeg', '.3gp'}
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif'}
+AUDIO_EXTS = {'.mp3', '.aac', '.m4a', '.wav', '.flac', '.ogg', '.opus', '.wma'}
+LOSSLESS_AUDIO = {'.flac', '.wav'}
+
 def heif_to_png(src):
     """
     Convierte un HEIC/HEIF a PNG usando heif-convert y devuelve
@@ -18,6 +24,10 @@ def heif_to_png(src):
         os.remove(tmp.name)
         print(f"heif-convert falló con código {e.returncode}")
         return None
+
+def _bitrate_from_quality(q: int, minimum: int, maximum: int) -> int:
+    """Mapa lineal del *quality_level* (1‑100) a un bitrate en kbit/s."""
+    return int(minimum + (q - 1) * (maximum - minimum) / 99)
 
 def convert_file(input_file, output_file, is_video, quality_level, target_format):
     """
@@ -52,6 +62,8 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
     else:
         input_for_ffmpeg = input_file
     # --------------------------------------------------------
+
+    fmt_out = target_format.lower()
 
     if is_video:
         '''
@@ -106,7 +118,46 @@ def convert_file(input_file, output_file, is_video, quality_level, target_format
 
         stream = ffmpeg.input(input_for_ffmpeg)
         output_stream = ffmpeg.output(stream.video, stream.audio, output_file, **output_options)
+    elif ext in AUDIO_EXTS or fmt_out in {e.lstrip(".") for e in AUDIO_EXTS}:
+        stream = ffmpeg.input(input_for_ffmpeg)
+        output_options["vn"] = None  # Fuerza no incluir vídeo
 
+        # Asignar códec/bitrate según formato
+        if fmt_out == "mp3":
+            output_options.update({
+                "acodec": "libmp3lame",
+                "audio_bitrate": f"{_bitrate_from_quality(quality_level, 64, 320)}k",
+            })
+        elif fmt_out in {"aac", "m4a"}:
+            output_options.update({
+                "acodec": "aac",
+                "audio_bitrate": f"{_bitrate_from_quality(quality_level, 64, 320)}k",
+            })
+        elif fmt_out == "ogg":
+            output_options.update({
+                "acodec": "libvorbis",
+                "audio_bitrate": f"{_bitrate_from_quality(quality_level, 64, 320)}k",
+            })
+        elif fmt_out == "opus":
+            output_options.update({
+                "acodec": "libopus",
+                "audio_bitrate": f"{_bitrate_from_quality(quality_level, 48, 256)}k",
+            })
+        elif fmt_out == "wma":
+            output_options.update({
+                "acodec": "wmav2",
+                "audio_bitrate": f"{_bitrate_from_quality(quality_level, 64, 192)}k",
+            })
+        elif fmt_out == "flac":
+            # FLAC es sin pérdida; mapeamos calidad a compression_level 0‑8
+            comp_lvl = round((quality_level / 100) * 8)
+            output_options.update({"acodec": "flac", "compression_level": comp_lvl})
+        elif fmt_out == "wav":
+            output_options.update({"acodec": "pcm_s16le"})  # WAV PCM 16‑bit LE
+        else:
+            return False, os.path.basename(input_file), f"Formato de audio no soportado: {target_format}"
+
+        output_stream = ffmpeg.output(stream.audio, output_file, **output_options)
     else:
         stream = ffmpeg.input(input_for_ffmpeg)
         fmt_lower = target_format.lower()

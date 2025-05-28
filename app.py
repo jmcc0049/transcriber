@@ -1,8 +1,7 @@
 import os
 import uuid
 import concurrent.futures
-import json # Importar json para cargar perfiles si se usan en el futuro
-from flask import Flask, render_template, request, jsonify, send_from_directory # Añadir send_from_directory si se implementa descarga
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from logic import convert_file
 
 app = Flask(__name__)
@@ -92,6 +91,9 @@ def convert():
 
         image_exts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
                       '.tiff', '.tif', '.heic', '.heif']
+        
+        audio_exts = ['.mp3','.aac','.m4a','.wav','.flac','.ogg','.opus',
+                      '.wma']
 
         if mime:
             if mime.startswith('video'):
@@ -100,6 +102,9 @@ def convert():
             elif mime.startswith('image'):
                 is_video = False
                 file_type_determined_by = "MIME (image)"
+            elif mime.startswith('audio'):
+                is_video = False
+                file_type_determined_by = "MIME (audio)"
 
         if is_video is None: # Si MIME no fue útil
             _, ext = os.path.splitext(original_filename)

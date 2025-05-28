@@ -24,7 +24,7 @@
           <div class="card-body">
             <div id="dropArea" class="dropzone mb-4">
               <p class="lead mb-0">Arrastra tus archivos aquí o haz clic para seleccionarlos</p>
-              <input id="files" type="file" accept="video/*,image/*" multiple hidden />
+              <input id="files" type="file" accept="video/*,image/*,audio/*" multiple hidden />
             </div>
             <h2 class="h5 fw-semibold mb-3">Archivos seleccionados</h2>
             <div id="selectedGrid" class="d-flex flex-wrap g-2 mb-4"></div>
@@ -37,7 +37,7 @@
               </div>
               <div class="col-md">
                 <label class="form-label fw-semibold" for="qualitySlider">
-                  Calidad <span id="qualityValue" class="fw-bold">80</span>
+                  Calidad / Ratio de compresión: <span id="qualityValue" class="fw-bold">80</span>
                 </label>
                 <input id="qualitySlider" type="range" class="form-range" min="1" max="100" value="80" />
               </div>
