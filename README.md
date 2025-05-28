@@ -3,8 +3,9 @@
 Transcriber es una herramienta web (SPA) que convierte lotes de vídeo, audio e imagen entre los formatos más habituales sin bloquear la interfaz gráfica.  
 Su núcleo está escrito en **Python 3 + Flask** y delega la codificación a **FFmpeg**; el front-end es una aplicación de página única (HTML + Vanilla JS + Bootstrap 5).
 
-![Captura de pantalla](docs/screenshot.jpg)
-
+---
+![Captura de pantalla](static/screenshot.jpg)
+---
 
 ## 🚀 Motivación y decisiones de diseño
 
